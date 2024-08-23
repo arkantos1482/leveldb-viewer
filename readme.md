@@ -1,12 +1,15 @@
-# LevelDB Viewer
+# LevelDB Viewer (Graphical)
 
-LevelDB Viewer is a simple, yet powerful command-line tool for viewing and exploring LevelDB databases. It allows you to inspect the contents of a LevelDB database, filter by key prefixes, and display the key-value pairs in a human-readable format. This tool is especially useful for developers and data engineers working with LevelDB.
+LevelDB Viewer is a graphical terminal-based tool for viewing and exploring LevelDB databases. It allows you to inspect the contents of a LevelDB database, filter by key prefixes, search for specific keys, and navigate through large datasets with pagination.
 
 ## Features
 
+- **Graphical Interface**: Browse LevelDB databases in a graphical terminal UI using `tview`.
 - **View All Keys and Values**: Traverse through all keys and values in the LevelDB database.
-- **Key Prefix Filtering**: Filter the displayed keys by a specific prefix.
-- **Easy to Use**: Simple command-line interface for quick database inspection.
+- **Search Functionality**: Search for keys by typing a prefix or substring.
+- **Key Prefix Filtering**: Filter keys by prefix directly within the UI.
+- **Pagination**: Handle large datasets by navigating through pages of keys.
+- **Easy to Use**: Simple and intuitive interface for quick database inspection.
 
 ## Installation
 
@@ -22,26 +25,21 @@ Alternatively, you can clone the repository and build the tool locally:
 
 ## Usage
 
-Run the LevelDB Viewer from the command line, specifying the path to your LevelDB database. Optionally, you can filter the output by a key prefix.
-
-### Basic Usage
+Run the LevelDB Viewer from the command line, specifying the path to your LevelDB database:
 
     leveldb-viewer -db /path/to/your/db
 
-### Filter by Key Prefix
+### Key Prefix Filtering and Search
 
-    leveldb-viewer -db /path/to/your/db -prefix myprefix_
+You can filter keys by typing a prefix or substring in the search box at the top of the interface. The key list will dynamically update to show only matching keys.
 
-### Command-Line Options
+### Pagination
 
-- `-db`: Path to the LevelDB database (required).
-- `-prefix`: (Optional) Prefix to filter keys.
+Use the `n` key to move to the next page of keys and the `p` key to move to the previous page. Each page displays a fixed number of keys, making it easier to navigate large databases.
 
-### Example
+### Key Navigation
 
-    leveldb-viewer -db /var/lib/mydb -prefix user_
-
-This will display all keys starting with `user_` along with their corresponding values.
+Use the arrow keys to navigate through the list of keys. The value of the selected key will be displayed on the right.
 
 ## Contributing
 
@@ -53,4 +51,4 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ## Acknowledgments
 
-- Thanks to the [goleveldb](https://github.com/syndtr/goleveldb) project for providing the Go wrapper for LevelDB.
+- Thanks to the [goleveldb](https://github.com/syndtr/goleveldb) and [tview](https://github.com/rivo/tview) projects for providing the necessary tools to build this application.
