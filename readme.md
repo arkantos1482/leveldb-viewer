@@ -2,6 +2,8 @@
 
 LevelDB Viewer is a graphical terminal-based tool for viewing and exploring LevelDB databases. It allows you to inspect the contents of a LevelDB database, filter by key prefixes, search for specific keys, and navigate through large datasets with pagination.
 
+!["Screenshot description"](screenshots/Leveldb_viewer_Screenshot_1.png)
+
 ## Features
 
 - **Graphical Interface**: Browse LevelDB databases in a graphical terminal UI using `tview`.
