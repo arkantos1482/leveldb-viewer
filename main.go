@@ -40,7 +40,8 @@ func main() {
 	app := tview.NewApplication()
 
 	// Create a list to display keys
-	keyList := tview.NewList()
+	keyList := tview.NewList().
+		SetWrapAround(false)
 	keyList.SetBorder(true).
 		SetTitle("Keys")
 
@@ -51,18 +52,28 @@ func main() {
 		SetTitle("Value")
 
 	// Create an input field for searching and prefix filtering
-	searchBox := tview.NewInputField().
+	searchBox := tview.NewInputField()
+	searchBox.
 		SetLabel("Search/Prefix: ").
 		SetFieldWidth(20).
 		SetChangedFunc(func(text string) {
 			currentPrefix = text
 			filterKeys(db, keyList, valueList)
+		}).
+		SetDoneFunc(func(key tcell.Key) {
+			app.SetFocus(keyList)
 		})
+	keyList.SetDoneFunc(func() {
+		app.SetFocus(searchBox)
+	})
 
 	// Create a help window
 	helpText := `Use Arrow keys to navigate
 'n' for next page
 'p' for previous page
+'esc' to change focus
+'enter' when on search go to keys
+'enter' when on keys shows value
 'q' to quit
 'h' to toggle this help window`
 	helpWindow := tview.NewTextView().
