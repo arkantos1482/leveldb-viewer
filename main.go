@@ -64,6 +64,9 @@ func main() {
 			app.SetFocus(keyList)
 		})
 	keyList.SetDoneFunc(func() {
+		app.SetFocus(valueList)
+	})
+	valueList.SetDoneFunc(func(key tcell.Key) {
 		app.SetFocus(searchBox)
 	})
 
