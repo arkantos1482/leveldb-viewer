@@ -38,6 +38,7 @@ func main() {
 
 	// Create a new tview application
 	app := tview.NewApplication()
+	pages := tview.NewPages()
 
 	// Create a list to display keys
 	keyList := tview.NewList().
@@ -71,7 +72,8 @@ func main() {
 	helpText := `Use Arrow keys to navigate
 'n' for next page
 'p' for previous page
-'esc' to change focus
+'e' to edit value
+'Tab' to switch focus (Search/Keys/Value)
 'enter' when on search go to keys
 'enter' when on keys shows value
 'q' to quit
@@ -90,20 +92,44 @@ func main() {
 		AddItem(tview.NewFlex().
 			AddItem(keyList, 0, 1, true).
 			AddItem(valueList, 0, 2, false), 0, 1, true).
-		AddItem(tview.NewTextView().SetText("Use Arrow keys to navigate, 'n' for next page, 'p' for previous page, 'h' for help"), 1, 1, false)
+		AddItem(tview.NewTextView().SetText("Use Arrow keys to navigate, 'Tab' to switch focus, 'n' next, 'p' prev, 'e' edit, 'h' help"), 1, 1, false)
 
 	// Populate the initial key list
 	filterKeys(db, keyList, valueList)
 
 	// Set input capture for pagination and help window
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		// If we are showing a modal/form, let it handle its own input (unless it's a global quit or esc)
+		if name, _ := pages.GetFrontPage(); name == "edit" {
+			if event.Key() == tcell.KeyEscape {
+				pages.RemovePage("edit")
+				app.SetFocus(keyList)
+				return nil
+			}
+			return event
+		}
+
+		// If the search box is focused, don't intercept normal typing keys ('e', 'n', 'p', etc.)
+		if app.GetFocus() == searchBox {
+			// We only want to intercept Tab and Esc when in search box
+			if event.Key() != tcell.KeyTab && event.Key() != tcell.KeyEscape && event.Key() != tcell.KeyEnter {
+				return event
+			}
+		}
+
 		switch event.Rune() {
 		case 'n':
 			nextPage(db, keyList, valueList)
+			return nil
 		case 'p':
 			prevPage(db, keyList, valueList)
+			return nil
+		case 'e':
+			editValue(app, pages, db, keyList, valueList)
+			return nil
 		case 'q', 'Q':
 			app.Stop()
+			return nil
 		case 'h', 'H':
 			showHelp = !showHelp
 			if showHelp {
@@ -111,12 +137,31 @@ func main() {
 			} else {
 				flex.RemoveItem(helpWindow)
 			}
+			return nil
 		}
+		
+		switch event.Key() {
+		case tcell.KeyEscape:
+			app.SetFocus(keyList)
+			return nil
+		case tcell.KeyTab:
+			if app.GetFocus() == searchBox {
+				app.SetFocus(keyList)
+			} else if app.GetFocus() == keyList {
+				app.SetFocus(valueList)
+			} else {
+				app.SetFocus(searchBox)
+			}
+			return nil
+		}
+
 		return event
 	})
 
+	pages.AddPage("main", flex, true, true)
+
 	// Set up and run the application
-	if err := app.SetRoot(flex, true).Run(); err != nil {
+	if err := app.SetRoot(pages, true).Run(); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -179,4 +224,59 @@ func prevPage(db *leveldb.DB, keyList *tview.List, valueList *tview.TextView) {
 		currentPage--
 		displayPage(db, keyList, valueList)
 	}
+}
+
+// editValue opens a form to edit the currently selected key's value
+func editValue(app *tview.Application, pages *tview.Pages, db *leveldb.DB, keyList *tview.List, valueList *tview.TextView) {
+	if len(filteredKeys) == 0 {
+		return
+	}
+
+	idx := keyList.GetCurrentItem()
+	globalIdx := currentPage*pageSize + idx
+	if globalIdx >= len(filteredKeys) {
+		return
+	}
+
+	key := filteredKeys[globalIdx]
+	value, err := db.Get(key, nil)
+	if err != nil {
+		return // Could show an error modal, but silently returning is simple
+	}
+
+	inputField := tview.NewInputField().SetLabel("Value").SetText(string(value))
+
+	form := tview.NewForm().
+		AddFormItem(inputField).
+		AddButton("Save", func() {
+			// Get the updated value directly from the closure
+			newValue := inputField.GetText()
+
+			err := db.Put(key, []byte(newValue), nil)
+			if err == nil {
+				// Update the valueList view
+				valueList.SetText(fmt.Sprintf("Key: %s\n\nValue: %s", key, newValue))
+			} else {
+				valueList.SetText(fmt.Sprintf("[red]Error saving: %v", err))
+			}
+			pages.RemovePage("edit")
+			app.SetFocus(keyList)
+		}).
+		AddButton("Cancel", func() {
+			pages.RemovePage("edit")
+			app.SetFocus(keyList)
+		})
+	form.SetBorder(true).SetTitle(fmt.Sprintf("Edit Value for '%s'", string(key)))
+
+	// Center the form
+	modal := tview.NewFlex().
+		AddItem(nil, 0, 1, false).
+		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
+			AddItem(nil, 0, 1, false).
+			AddItem(form, 11, 1, true).
+			AddItem(nil, 0, 1, false), 50, 1, true).
+		AddItem(nil, 0, 1, false)
+
+	pages.AddPage("edit", modal, true, true)
+	app.SetFocus(modal)
 }
